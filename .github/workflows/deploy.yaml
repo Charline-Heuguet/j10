@@ -8,20 +8,31 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - uses: google-github-actions/setup-gcloud@v1
+    steps:
+      # Étape 1 : Récupérer le code source
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Étape 2 : Authentifier avec GCP via le compte de service
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # Étape 3 : Installer l'outil gcloud
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          export_default_credentials: true
 
-      - name: Build Docker image
+      # Étape 4 : Build & Push de l'image Docker
+      - name: Build and Push Docker image
         run: |
           docker build --platform=linux/amd64 -t europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/my-repo/my-flask-app .
           docker push europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/my-repo/my-flask-app
 
+      # Étape 5 : Déploiement sur Cloud Run
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy my-flask-app \
